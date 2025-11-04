@@ -2,14 +2,20 @@ name: CI/CD Demo
 
 on:
   push:
-    branches: [ "main" ]       # Corre cada vez que haces push al branch main
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]       # También se ejecuta en Pull Requests
-  workflow_dispatch:            # Permite lanzarlo manualmente desde Actions
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    # 👇 Hace que TODOS los "run:" se ejecuten dentro de la subcarpeta
+    defaults:
+      run:
+        shell: bash
+        working-directory: ci-cd-demo-github
 
     steps:
       - name: Checkout repository
@@ -23,7 +29,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping."
+          fi
 
       - name: Run tests
         run: |
@@ -33,11 +43,13 @@ jobs:
         run: |
           bash build.sh
 
+      # ⚠️ upload-artifact toma rutas relativas a la RAÍZ del repo,
+      # por eso indicamos la ruta completa con la subcarpeta
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: app_artifact
-          path: dist/app_artifact.zip
+          path: ci-cd-demo-github/dist/app_artifact.zip
 
   release-on-tag:
     if: startsWith(github.ref, 'refs/tags/')
